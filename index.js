@@ -5,6 +5,7 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors());
+app.use(express.json());
 
 const uri =
   "mongodb+srv://hotelBooking:guFER2WYYmLV19HU@cluster0.qfdpmw3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -24,7 +25,10 @@ async function run() {
     await client.connect();
     const roomsCollection = client
       .db("hotelBooking")
-      .collection("roomsCollection");
+      .collection("roomsCollection3");
+    const bookingsCollection = client
+      .db("hotelBooking")
+      .collection("hotelBookings2");
 
     app.get("/rooms", async (req, res) => {
       const result = await roomsCollection.find().toArray();
@@ -34,6 +38,43 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await roomsCollection.findOne(query);
+      res.send(result);
+    });
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      console.log("posting", booking);
+      const result = await bookingsCollection.insertOne(booking);
+      res.send(result);
+    });
+    app.get("/bookings", async (req, res) => {
+      console.log(req.query?.email);
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
+      }
+      const result = await bookingsCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.delete("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      console.log(`Attempting to delete booking with ID: ${id}`);
+      const result = await bookingsCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.patch("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedDate = req.body;
+      console.log(`New Check-In Date: ${updatedDate.checkIn}`);
+      console.log("id", id);
+      const updatedDoc = {
+        $set: {
+          checkIn: updatedDate.checkIn,
+        },
+      };
+      // console.log(updatedDoc);
+      const result = await bookingsCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
 
