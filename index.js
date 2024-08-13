@@ -29,6 +29,9 @@ async function run() {
     const bookingsCollection = client
       .db("hotelBooking")
       .collection("hotelBookings2");
+    const reviewsCollection = client
+      .db("roomReviews")
+      .collection("hotelBookings2");
 
     app.get("/rooms", async (req, res) => {
       const result = await roomsCollection.find().toArray();
@@ -76,6 +79,18 @@ async function run() {
       // console.log(updatedDoc);
       const result = await bookingsCollection.updateOne(query, updatedDoc);
       res.send(result);
+    });
+    //reviews
+    app.post("/reviews", async (req, res) => {
+      const review = req.body;
+      console.log("review cooming ==>", review);
+      const result = await reviewsCollection.insertOne(review);
+      res.send(result);
+    });
+    app.get("/reviews/:roomId", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: id };
+      const result = await reviewsCollection.find;
     });
 
     await client.db("admin").command({ ping: 1 });
