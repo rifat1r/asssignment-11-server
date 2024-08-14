@@ -2,9 +2,16 @@ const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 const cors = require("cors");
+require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 const uri =
@@ -25,32 +32,47 @@ async function run() {
     await client.connect();
     const roomsCollection = client
       .db("hotelBooking")
-      .collection("roomsCollection3");
-    const bookingsCollection = client
-      .db("hotelBooking")
-      .collection("hotelBookings2");
-    const reviewsCollection = client
-      .db("roomReviews")
-      .collection("hotelBookings2");
+      .collection("roomsCollection2");
+    const bookingsCollection = client.db("hotelBooking").collection("bookings");
+    const reviewsCollection = client.db("hotelBooking").collection("reviews");
+
+    //auth related
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false,
+          sameSite: "none",
+        })
+        .send({ succeess: true });
+    });
 
     app.get("/rooms", async (req, res) => {
       const result = await roomsCollection.find().toArray();
       res.send(result);
     });
+
     app.get("/room/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await roomsCollection.findOne(query);
       res.send(result);
     });
+
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
-      console.log("posting", booking);
+      // console.log("posting", booking);
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
     });
+
     app.get("/bookings", async (req, res) => {
-      console.log(req.query?.email);
+      // console.log(req.query?.email);
       let query = {};
       if (req.query?.email) {
         query = { email: req.query.email };
@@ -58,19 +80,21 @@ async function run() {
       const result = await bookingsCollection.find(query).toArray();
       res.send(result);
     });
+
     app.delete("/bookings/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      console.log(`Attempting to delete booking with ID: ${id}`);
+      // console.log(`Attempting to delete booking with ID: ${id}`);
       const result = await bookingsCollection.deleteOne(query);
       res.send(result);
     });
+
     app.patch("/bookings/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updatedDate = req.body;
-      console.log(`New Check-In Date: ${updatedDate.checkIn}`);
-      console.log("id", id);
+      // console.log(`New Check-In Date: ${updatedDate.checkIn}`);
+      // console.log("id", id);
       const updatedDoc = {
         $set: {
           checkIn: updatedDate.checkIn,
@@ -80,23 +104,31 @@ async function run() {
       const result = await bookingsCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
+
     //reviews
     app.post("/reviews", async (req, res) => {
       const review = req.body;
-      console.log("review cooming ==>", review);
+      // console.log("review cooming ==>", review);
       const result = await reviewsCollection.insertOne(review);
       res.send(result);
     });
-    app.get("/reviews/:roomId", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: id };
-      const result = await reviewsCollection.find;
+
+    app.get("/reviews", async (req, res) => {
+      let query = {};
+      if (req.query?.id) {
+        query = {
+          roomId: req.query.id,
+        };
+      }
+      // console.log(query);
+      const result = await reviewsCollection.find(query).toArray();
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
