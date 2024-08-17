@@ -58,9 +58,10 @@ async function run() {
     await client.connect();
     const roomsCollection = client
       .db("hotelBooking")
-      .collection("roomsCollection2");
+      .collection("roomsCollection5");
     const bookingsCollection = client.db("hotelBooking").collection("bookings");
     const reviewsCollection = client.db("hotelBooking").collection("reviews");
+    const ratingsCollection = client.db("hotelBooking").collection("ratings");
 
     //auth related
     app.post("/jwt", async (req, res) => {
@@ -80,12 +81,24 @@ async function run() {
     });
 
     app.get("/rooms", async (req, res) => {
-      const result = await roomsCollection.find().toArray();
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      console.log("pagenation query", page, size);
+      const result = await roomsCollection
+        .find()
+        .skip(page * size)
+        .limit(size)
+        .toArray();
       res.send(result);
+    });
+    app.get("/roomsCount", async (req, res) => {
+      const count = await roomsCollection.estimatedDocumentCount();
+      res.send({ count });
     });
 
     app.get("/room/:id", async (req, res) => {
       const id = req.params.id;
+      console.log("/single room here", id);
       const query = { _id: new ObjectId(id) };
       const result = await roomsCollection.findOne(query);
       res.send(result);
@@ -98,7 +111,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/allBookings", async (req, res) => {
+    app.get("/allBookings", varifyToken, async (req, res) => {
       const result = await bookingsCollection.find().toArray();
       res.send(result);
     });
