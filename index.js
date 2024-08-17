@@ -91,6 +91,17 @@ async function run() {
         .toArray();
       res.send(result);
     });
+    app.get("/api/rooms", async (req, res) => {
+      const { min, max } = req.query;
+
+      const result = await roomsCollection
+        .find({
+          pricePerNight: { $gte: parseInt(min), $lte: parseInt(max) },
+        })
+        .toArray();
+      res.json(result);
+    });
+
     app.get("/roomsCount", async (req, res) => {
       const count = await roomsCollection.estimatedDocumentCount();
       res.send({ count });
